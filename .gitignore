@@ -1,33 +1,14 @@
 # Python
 __pycache__/
 *.pyc
-*.pyo
-*.egg-info/
-dist/
-build/
+.venv/
 venv/
+
+# Env / secrets — never commit these
 .env
-
-# AWS
-*.pem
-*.key
-samconfig.toml
-
-# Secrets — NEVER commit these
-.env.local
-.env.production
+*.env
 secrets.json
+*.pem
 
 # OS
 .DS_Store
-Thumbs.db
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Node (if applicable)
-node_modules/
-package-lock.json

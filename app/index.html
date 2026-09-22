@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recca's Kitchen — Where Flavors Meet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#231a17;--muted:#7a6f68;--spice:#c0392b;--spice-deep:#96271c;--gold:#e2a03f;--cream:#fbf5ee;--line:#ecddce}
+*{box-sizing:border-box}body{font-family:'Poppins',sans-serif;margin:0;color:var(--ink);background:var(--cream)}a{color:inherit}
+.nav{position:sticky;top:0;z-index:50;background:rgba(35,26,23,.96);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:12px 20px}
+.brand{font-family:'Playfair Display',serif;font-weight:800;font-size:24px;cursor:pointer}.brand span{color:var(--gold)}
+.nav-links{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.nav-links button{background:none;border:none;color:#eee;font-family:inherit;font-size:14px;font-weight:500;padding:8px 12px;border-radius:8px;cursor:pointer}
+.nav-links button:hover{background:rgba(255,255,255,.12);color:#fff}
+.cartbtn{background:var(--spice)!important;color:#fff!important;border-radius:999px!important;font-weight:600!important;padding:8px 16px!important}
+.hero{position:relative;min-height:64vh;display:flex;align-items:center;justify-content:center;text-align:center;color:#fff;background-size:cover;background-position:center}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(35,26,23,.45),rgba(35,26,23,.72))}
+.hero-c{position:relative;z-index:2;max-width:760px;padding:0 22px}
+.hero-c h1{font-family:'Playfair Display',serif;font-size:clamp(40px,7vw,74px);margin:0 0 12px;text-shadow:0 3px 22px rgba(0,0,0,.4)}
+.hero-c .tag{font-size:clamp(16px,2.4vw,23px);font-weight:300;margin:0 0 22px}
+.hero-c .tag b{color:var(--gold);font-weight:600}
+.btn{background:linear-gradient(135deg,var(--spice),var(--spice-deep));color:#fff;border:none;border-radius:999px;padding:13px 30px;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 8px 22px rgba(150,39,28,.3)}
+.btn:hover{filter:brightness(1.06)}.btn.ghost{background:#fff;color:var(--spice-deep)}
+.wrap{max-width:1080px;margin:0 auto;padding:0 18px}
+section.block{padding:54px 0}
+h2.title{font-family:'Playfair Display',serif;font-size:32px;text-align:center;margin:0 0 6px}
+.subtitle{text-align:center;color:var(--muted);margin:0 0 28px}
+.cattabs{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:24px}
+.cattab{background:#fff;border:1px solid var(--line);border-radius:999px;padding:8px 18px;font-weight:600;font-size:14px;cursor:pointer}
+.cattab.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+.menugrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px}
+.mcard{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 6px 20px rgba(80,50,40,.07);display:flex;flex-direction:column}
+.mcard img{width:100%;height:170px;object-fit:cover;display:block;background:#eee}
+.mcard .body{padding:14px 16px;display:flex;flex-direction:column;gap:6px;flex:1}
+.mcard h3{font-family:'Playfair Display',serif;font-size:19px;margin:0}
+.mcard p{color:var(--muted);font-size:13.5px;line-height:1.4;margin:0;flex:1}
+.mcard .row{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+.price{font-weight:700;color:var(--spice-deep);font-size:17px}
+.add{background:var(--gold);color:#3a2a12;border:none;border-radius:999px;padding:8px 16px;font-weight:600;cursor:pointer;font-family:inherit}
+.add:hover{filter:brightness(1.05)}
+/* cart drawer */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:60;display:none}
+.overlay.open{display:block}
+.drawer{position:fixed;top:0;right:0;height:100%;width:390px;max-width:92vw;background:#fff;z-index:61;transform:translateX(100%);transition:transform .28s ease;display:flex;flex-direction:column;box-shadow:-8px 0 30px rgba(0,0,0,.2)}
+.drawer.open{transform:translateX(0)}
+.drawer h3{font-family:'Playfair Display',serif;margin:0;font-size:22px}
+.dhead{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.dhead .x{background:none;border:none;font-size:24px;cursor:pointer;color:var(--muted)}
+.ditems{flex:1;overflow:auto;padding:12px 20px}
+.citem{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.citem img{width:52px;height:52px;border-radius:10px;object-fit:cover}
+.citem .n{flex:1;font-size:14px}.citem .n small{color:var(--muted)}
+.qty{display:flex;align-items:center;gap:8px}
+.qty button{width:26px;height:26px;border-radius:50%;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:15px}
+.dfoot{border-top:1px solid var(--line);padding:16px 20px}
+.frow{display:flex;justify-content:space-between;margin:4px 0;font-size:14px}
+.frow.total{font-weight:700;font-size:17px;margin-top:8px}
+label{display:block;font-size:13px;font-weight:500;color:var(--muted);margin:10px 0 4px}
+input,select,textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;font-size:14px;font-family:inherit;background:#fffdfb}
+.seg{display:flex;gap:8px;margin-top:6px}
+.seg button{flex:1;padding:10px;border:1px solid var(--line);background:#fff;border-radius:10px;cursor:pointer;font-weight:600;font-family:inherit}
+.seg button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+/* about / reviews / catering */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+.infocard{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px}
+.map{width:100%;height:230px;border-radius:14px;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted);background:repeating-linear-gradient(45deg,#f4ece2,#f4ece2 12px,#efe4d6 12px,#efe4d6 24px)}
+.revgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px}
+.review{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px}
+.stars{color:var(--gold);font-size:16px}.review p{color:#4a423d;font-style:italic;line-height:1.5}.review .who{font-weight:600;margin-top:8px}
+.catering{background:#fff;border:1px solid var(--line);border-radius:16px;padding:26px;max-width:640px;margin:0 auto}
+.msg{margin-top:12px;padding:12px 14px;border-radius:10px;font-size:14px;display:none}
+.msg.ok{display:block;background:#e8f6ec;color:#1c6b34;border:1px solid #bfe6c9}
+.msg.err{display:block;background:#fdeceb;color:#a02a1e;border:1px solid #f3c6c1}
+footer{background:#231a17;color:#e9ddd3;padding:36px 18px;text-align:center;margin-top:20px}
+footer .brand{color:#fff;justify-content:center}footer p{color:#b9a99d;font-size:13px}
+#confirm{display:none;max-width:640px;margin:40px auto;background:#fff;border:1px solid var(--line);border-radius:18px;padding:34px;text-align:center}
+#confirm h2{font-family:'Playfair Display',serif;color:var(--spice-deep)}
+.badge{display:inline-block;background:var(--gold);color:#3a2a12;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:600;margin-left:6px}
+@media(max-width:720px){.two{grid-template-columns:1fr}.nav-links{display:none}}
+</style></head>
+<body>
+<nav class="nav">
+  <div class="brand" onclick="go('home')">Recca's <span>Kitchen</span></div>
+  <div class="nav-links">
+    <button onclick="go('menu')">Menu</button>
+    <button onclick="go('about')">About</button>
+    <button onclick="go('reviews')">Reviews</button>
+    <button onclick="go('catering')">Catering</button>
+    <button class="cartbtn" onclick="openCart()">🛒 Cart (<span id="cartCount">0</span>)</button>
+  </div>
+</nav>
+
+<div id="confirm"></div>
+
+<div id="site">
+<section class="hero" id="home" style="background-image:url('https://images.pexels.com/photos/12181619/pexels-photo-12181619.jpeg?auto=compress&cs=tinysrgb&h=650&w=940')">
+  <div class="hero-c">
+    <h1>Recca's Kitchen</h1>
+    <p class="tag">Where <b>flavors</b> meet — African, Caribbean & American comfort, fused on one plate.</p>
+    <button class="btn" onclick="go('menu')">Order Now</button>
+    <button class="btn ghost" onclick="go('catering')" style="margin-left:8px">Book Catering</button>
+  </div>
+</section>
+
+<section class="block wrap" id="menu">
+  <h2 class="title">Our Menu</h2>
+  <p class="subtitle">Fresh fusion, made to order.</p>
+  <div class="cattabs" id="cattabs"></div>
+  <div class="menugrid" id="menugrid"></div>
+</section>
+
+<section class="block" style="background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)"><div class="wrap" id="about">
+  <h2 class="title">Our Story</h2>
+  <p class="subtitle">Where flavors meet.</p>
+  <div class="two">
+    <div class="infocard">
+      <p>Recca's Kitchen began as a family Sunday-supper tradition — jollof simmering next to mac & cheese, jerk chicken sharing the grill with cornbread. Today we bring that same joyful fusion of African, Caribbean, and American comfort food to your table.</p>
+      <p style="margin-top:14px"><b>Hours</b><br>Mon–Thu: 11am – 9pm<br>Fri–Sat: 11am – 11pm<br>Sun: 12pm – 8pm</p>
+      <p style="margin-top:14px"><b>📞</b> (857) 318-6247 &nbsp; · &nbsp; <b>✉️</b> hello@reccaskitchen.example<br><b>📍</b> 2948 Sweet Red Circle, Braselton, GA 30517</p>
+    </div>
+    <div class="infocard"><div class="map">🗺️ Map placeholder — 2948 Sweet Red Circle, Braselton, GA 30517</div></div>
+  </div>
+</div></section>
+
+<section class="block wrap" id="reviews">
+  <h2 class="title">What Guests Say</h2>
+  <p class="subtitle">Loved by flavor-seekers.</p>
+  <div class="revgrid">
+    <div class="review"><div class="stars">★★★★★</div><p>"The jerk chicken & waffles is unreal. Best fusion in the city, hands down."</p><div class="who">— Danielle O.</div></div>
+    <div class="review"><div class="stars">★★★★★</div><p>"Egusi mac & cheese sounded wild and tasted incredible. Ordering again tonight."</p><div class="who">— Marcus T.</div></div>
+    <div class="review"><div class="stars">★★★★☆</div><p>"Catered our office party — the fusion feast board was a huge hit with everyone."</p><div class="who">— Priya S.</div></div>
+    <div class="review"><div class="stars">★★★★★</div><p>"Puff-puff beignets + rum cake = my new weakness. Fast pickup too."</p><div class="who">— Andre W.</div></div>
+  </div>
+</section>
+
+<section class="block" style="background:#fff;border-top:1px solid var(--line)"><div class="wrap" id="catering">
+  <h2 class="title">Catering &amp; Events</h2>
+  <p class="subtitle">Let us bring the fusion to your celebration.</p>
+  <div class="catering">
+    <label>Your name *</label><input id="ct_name" placeholder="Jane Doe">
+    <label>Contact (email or phone) *</label><input id="ct_contact" placeholder="jane@email.com">
+    <label>Event date *</label><input id="ct_date" type="date">
+    <label>Guest count *</label><input id="ct_guests" type="number" min="1" placeholder="50">
+    <label>Menu preferences / notes</label><textarea id="ct_notes" placeholder="e.g., fusion feast board, vegetarian options, dessert table..."></textarea>
+    <button class="btn" style="margin-top:14px" onclick="submitCatering()">Request Catering</button>
+    <div class="msg" id="ct_msg"></div>
+  </div>
+</div></section>
+</div>
+
+<footer>
+  <div class="brand" style="display:flex;font-family:'Playfair Display',serif;font-size:22px;font-weight:800">Recca's <span style="color:var(--gold)">&nbsp;Kitchen</span></div>
+  <p>Where flavors meet · 2948 Sweet Red Circle, Braselton, GA 30517 · (857) 318-6247</p>
+  <p>© 2026 Recca's Kitchen · Demo experience · Payments in Stripe test mode</p>
+</footer>
+
+<!-- Cart drawer -->
+<div class="overlay" id="overlay" onclick="closeCart()"></div>
+<div class="drawer" id="drawer">
+  <div class="dhead"><h3>Your Order</h3><button class="x" onclick="closeCart()">×</button></div>
+  <div class="ditems" id="ditems"></div>
+  <div class="dfoot">
+    <div id="checkoutFields">
+      <label>Fulfillment</label>
+      <div class="seg"><button id="seg-pickup" class="on" onclick="setFulfill('pickup')">Pickup</button><button id="seg-delivery" onclick="setFulfill('delivery')">Delivery</button></div>
+      <div id="addrWrap" style="display:none"><label>Delivery address</label><input id="ck_address" placeholder="Street, City, ZIP"></div>
+      <label>Time slot</label>
+      <select id="ck_time"><option>ASAP (30–45 min)</option><option>In 1 hour</option><option>In 2 hours</option><option>Today, 6:00 PM</option><option>Today, 7:30 PM</option></select>
+      <label>Name</label><input id="ck_name" placeholder="Your name">
+      <label>Phone</label><input id="ck_phone" placeholder="(555) 555-5555">
+    </div>
+    <div class="frow"><span>Subtotal</span><span id="sumSub">$0.00</span></div>
+    <div class="frow" id="feeRow" style="display:none"><span>Delivery fee</span><span id="sumFee">$0.00</span></div>
+    <div class="frow total"><span>Total</span><span id="sumTotal">$0.00</span></div>
+    <button class="btn" style="width:100%;margin-top:12px" id="payBtn" onclick="checkout()">Checkout with Stripe</button>
+    <div class="msg" id="ck_msg"></div>
+    <p style="font-size:11px;color:var(--muted);text-align:center;margin:8px 0 0">Test mode · card 4242 4242 4242 4242, any future date & CVC</p>
+  </div>
+</div>
+
+<script>
+var CART={}, MENU=[], CFG={deliveryFee:4.99,stripeReady:false}, FULFILL='pickup';
+function money(n){return '$'+(n).toFixed(2);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function go(id){var el=document.getElementById(id); if(el)el.scrollIntoView({behavior:'smooth'});}
+
+async function loadConfig(){try{CFG=await (await fetch('/api/config')).json();}catch(e){}}
+async function loadMenu(){
+  try{ var d=await (await fetch('/api/menu')).json(); MENU=d.menu||[]; }catch(e){ document.getElementById('menugrid').innerHTML='<p class="muted">Menu unavailable.</p>'; return; }
+  var tabs=document.getElementById('cattabs'); tabs.innerHTML='';
+  MENU.forEach(function(c,i){var b=document.createElement('button');b.className='cattab'+(i===0?' active':'');b.textContent=c.category;b.onclick=function(){renderCat(i,b);};tabs.appendChild(b);});
+  renderCat(0, tabs.firstChild);
+}
+function renderCat(i, btn){
+  document.querySelectorAll('.cattab').forEach(function(t){t.classList.remove('active');}); if(btn)btn.classList.add('active');
+  var grid=document.getElementById('menugrid'); grid.innerHTML='';
+  (MENU[i].items||[]).forEach(function(it){
+    var d=document.createElement('div'); d.className='mcard';
+    d.innerHTML='<img src="'+esc(it.image)+'" alt="'+esc(it.name)+'" loading="lazy">'+
+      '<div class="body"><h3>'+esc(it.name)+'</h3><p>'+esc(it.desc)+'</p>'+
+      '<div class="row"><span class="price">'+money(it.price)+'</span>'+
+      '<button class="add" onclick="addToCart(\''+it.id+'\')">Add +</button></div></div>';
+    grid.appendChild(d);
+  });
+}
+function findItem(id){for(var c of MENU){for(var it of c.items){if(it.id===id)return it;}}return null;}
+function addToCart(id){CART[id]=(CART[id]||0)+1; updateCart(); openCart();}
+function chg(id,delta){CART[id]=(CART[id]||0)+delta; if(CART[id]<=0)delete CART[id]; updateCart();}
+function cartCount(){var n=0;for(var k in CART)n+=CART[k];return n;}
+function subtotal(){var s=0;for(var k in CART){var it=findItem(k); if(it)s+=it.price*CART[k];}return s;}
+function updateCart(){
+  document.getElementById('cartCount').textContent=cartCount();
+  var box=document.getElementById('ditems'); box.innerHTML='';
+  var keys=Object.keys(CART);
+  if(!keys.length){box.innerHTML='<p class="muted" style="padding:20px 0">Your cart is empty. Add something tasty!</p>';}
+  keys.forEach(function(id){var it=findItem(id); if(!it)return;
+    var row=document.createElement('div'); row.className='citem';
+    row.innerHTML='<img src="'+esc(it.image)+'"><div class="n">'+esc(it.name)+'<br><small>'+money(it.price)+'</small></div>'+
+      '<div class="qty"><button onclick="chg(\''+id+'\',-1)">−</button><span>'+CART[id]+'</span><button onclick="chg(\''+id+'\',1)">+</button></div>';
+    box.appendChild(row);
+  });
+  var sub=subtotal(), fee=(FULFILL==='delivery' && keys.length)?(CFG.deliveryFee||0):0;
+  document.getElementById('sumSub').textContent=money(sub);
+  document.getElementById('feeRow').style.display=fee?'flex':'none';
+  document.getElementById('sumFee').textContent=money(fee);
+  document.getElementById('sumTotal').textContent=money(sub+fee);
+}
+function openCart(){document.getElementById('overlay').classList.add('open');document.getElementById('drawer').classList.add('open');updateCart();}
+function closeCart(){document.getElementById('overlay').classList.remove('open');document.getElementById('drawer').classList.remove('open');}
+function setFulfill(f){FULFILL=f;document.getElementById('seg-pickup').classList.toggle('on',f==='pickup');document.getElementById('seg-delivery').classList.toggle('on',f==='delivery');document.getElementById('addrWrap').style.display=(f==='delivery')?'block':'none';updateCart();}
+function showMsg(id,text,ok){var m=document.getElementById(id);m.textContent=text;m.className='msg '+(ok?'ok':'err');}
+
+async function checkout(){
+  var keys=Object.keys(CART);
+  if(!keys.length){showMsg('ck_msg','Your cart is empty.',false);return;}
+  if(FULFILL==='delivery' && !document.getElementById('ck_address').value.trim()){showMsg('ck_msg','Please enter a delivery address.',false);return;}
+  var btn=document.getElementById('payBtn'); btn.disabled=true; btn.textContent='Starting checkout…';
+  var payload={cart:keys.map(function(id){return {id:id,qty:CART[id]};}),fulfillment:FULFILL,
+    address:document.getElementById('ck_address').value,time_slot:document.getElementById('ck_time').value,
+    name:document.getElementById('ck_name').value,phone:document.getElementById('ck_phone').value,
+    origin:window.location.origin};
+  try{
+    var res=await fetch('/api/create-checkout-session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    var d=await res.json();
+    if(d.url){window.location=d.url;} else {showMsg('ck_msg',d.error||'Checkout failed.',false);btn.disabled=false;btn.textContent='Checkout with Stripe';}
+  }catch(e){showMsg('ck_msg','Network error. Please try again.',false);btn.disabled=false;btn.textContent='Checkout with Stripe';}
+}
+async function submitCatering(){
+  var payload={name:document.getElementById('ct_name').value,contact:document.getElementById('ct_contact').value,
+    date:document.getElementById('ct_date').value,guests:document.getElementById('ct_guests').value,
+    notes:document.getElementById('ct_notes').value};
+  try{
+    var res=await fetch('/api/catering',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    var d=await res.json();
+    showMsg('ct_msg',(d.message||'')+(d.reference?(' (Ref: '+d.reference+')'):''), !!d.ok);
+  }catch(e){showMsg('ct_msg','Network error. Please try again.',false);}
+}
+/* Order confirmation on return from Stripe */
+async function checkReturn(){
+  var p=new URLSearchParams(window.location.search); var c=p.get('checkout');
+  if(!c)return;
+  var box=document.getElementById('confirm'), site=document.getElementById('site');
+  box.style.display='block';
+  if(c==='success'){
+    site.style.display='none';
+    var sid=p.get('session_id'); var extra='';
+    try{ if(sid){var s=await (await fetch('/api/order-status?session_id='+encodeURIComponent(sid))).json(); if(s.paid)extra='<p>Amount charged: <b>$'+(s.amount_total||0).toFixed(2)+'</b> · '+esc(s.fulfillment||'')+'</p>';}}catch(e){}
+    box.innerHTML='<h2>🎉 Order Confirmed!</h2><p>Thank you for ordering from Recca\'s Kitchen. Your payment was received (test mode).</p>'+extra+'<p>We\'re firing up the grill — you\'ll get a text when it\'s ready.</p><button class="btn" onclick="clearReturn()">Back to menu</button>';
+  } else {
+    box.innerHTML='<h2 style="color:#96271c">Checkout canceled</h2><p>No worries — your cart is still saved. Ready when you are.</p><button class="btn" onclick="clearReturn()">Back to menu</button>';
+  }
+}
+function clearReturn(){history.replaceState({},'',window.location.pathname);document.getElementById('confirm').style.display='none';document.getElementById('site').style.display='block';go('menu');}
+
+(async function init(){ await loadConfig(); await loadMenu(); updateCart(); checkReturn(); })();
+</script>
+</body></html>

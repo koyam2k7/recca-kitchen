@@ -1,0 +1,269 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Recca's Kitchen - restaurant ordering site (private EC2 + ALB + CloudFront + SSM, Stripe test mode)
+
+Parameters:
+  InstanceType:
+    Type: String
+    Default: t3.small
+    AllowedValues: [t3.small, t3.medium, t3.large]
+  AppBucket:
+    Type: String
+    Default: reccas-kitchen-app-686948106210-us-east-1
+    Description: S3 bucket holding app.py and index.html
+  CloudFrontSecretHeader:
+    Type: String
+    Default: X-Origin-Verify
+  CloudFrontSecretValue:
+    Type: String
+    NoEcho: true
+    Default: ChangeMe-Use-A-Strong-Random-String
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags: [{Key: Name, Value: !Sub '${AWS::StackName}-VPC'}]
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags: [{Key: Name, Value: !Sub '${AWS::StackName}-Public'}]
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.3.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags: [{Key: Name, Value: !Sub '${AWS::StackName}-Public-2'}]
+
+  PrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.2.0/24
+      MapPublicIpOnLaunch: false
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags: [{Key: Name, Value: !Sub '${AWS::StackName}-Private'}]
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties: {VpcId: !Ref VPC, InternetGatewayId: !Ref InternetGateway}
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties: {VpcId: !Ref VPC}
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties: {RouteTableId: !Ref PublicRouteTable, DestinationCidrBlock: 0.0.0.0/0, GatewayId: !Ref InternetGateway}
+  PublicSubnetRTA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: {SubnetId: !Ref PublicSubnet, RouteTableId: !Ref PublicRouteTable}
+  PublicSubnet2RTA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: {SubnetId: !Ref PublicSubnet2, RouteTableId: !Ref PublicRouteTable}
+
+  NatEIP:
+    Type: AWS::EC2::EIP
+    Properties: {Domain: vpc}
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties: {AllocationId: !GetAtt NatEIP.AllocationId, SubnetId: !Ref PublicSubnet}
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties: {VpcId: !Ref VPC}
+  PrivateRoute:
+    Type: AWS::EC2::Route
+    Properties: {RouteTableId: !Ref PrivateRouteTable, DestinationCidrBlock: 0.0.0.0/0, NatGatewayId: !Ref NatGateway}
+  PrivateSubnetRTA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: {SubnetId: !Ref PrivateSubnet, RouteTableId: !Ref PrivateRouteTable}
+
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: HTTP from CloudFront to ALB
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - {IpProtocol: tcp, FromPort: 80, ToPort: 80, CidrIp: 0.0.0.0/0, Description: HTTP from CloudFront}
+
+  WebServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: HTTP from ALB only; egress for updates/Stripe/SSM
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - {IpProtocol: tcp, FromPort: 80, ToPort: 80, SourceSecurityGroupId: !Ref ALBSecurityGroup, Description: HTTP from ALB}
+      SecurityGroupEgress:
+        - {IpProtocol: tcp, FromPort: 443, ToPort: 443, CidrIp: 0.0.0.0/0, Description: HTTPS out}
+        - {IpProtocol: tcp, FromPort: 80, ToPort: 80, CidrIp: 0.0.0.0/0, Description: HTTP out}
+
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${AWS::StackName}-EC2-Role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement: [{Effect: Allow, Principal: {Service: ec2.amazonaws.com}, Action: sts:AssumeRole}]
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: AppAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:ReccasKitchen/StripeSecretKey*'
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub 'arn:aws:s3:::${AppBucket}/*'
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties: {Roles: [!Ref EC2Role]}
+
+  WebServerInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      ImageId: '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64}}'
+      SubnetId: !Ref PrivateSubnet
+      SecurityGroupIds: [!Ref WebServerSecurityGroup]
+      Tags: [{Key: Name, Value: !Sub '${AWS::StackName}-web'}]
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          dnf update -y
+          dnf install httpd python3-pip -y
+          pip3 install flask flask-cors stripe boto3
+          systemctl enable httpd
+          mkdir -p /opt/reccas
+          aws s3 cp s3://${AppBucket}/app.py /opt/reccas/app.py
+          aws s3 cp s3://${AppBucket}/index.html /var/www/html/index.html
+
+          cat > /etc/systemd/system/reccas.service << 'SVCEOF'
+          [Unit]
+          Description=Reccas Kitchen
+          After=network.target
+          [Service]
+          User=ec2-user
+          WorkingDirectory=/opt/reccas
+          ExecStart=/usr/bin/python3 /opt/reccas/app.py
+          Restart=always
+          [Install]
+          WantedBy=multi-user.target
+          SVCEOF
+          systemctl daemon-reload
+          systemctl enable reccas
+          systemctl start reccas
+
+          cat > /etc/httpd/conf.d/reccas.conf << 'PROXYEOF'
+          <VirtualHost *:80>
+            ProxyPreserveHost On
+            # Health check bypass (no secret header required)
+            <Location "/health">
+              Require all granted
+            </Location>
+            ProxyPass /health http://127.0.0.1:5000/health
+            ProxyPassReverse /health http://127.0.0.1:5000/health
+            # Everything else must carry the CloudFront secret header
+            <If "req('${CloudFrontSecretHeader}') != '${CloudFrontSecretValue}'">
+              <RequireAll>
+                Require all denied
+              </RequireAll>
+            </If>
+            ProxyPass /api/ http://127.0.0.1:5000/api/
+            ProxyPassReverse /api/ http://127.0.0.1:5000/api/
+            DocumentRoot /var/www/html
+            <Directory /var/www/html>
+              AllowOverride All
+              Require all granted
+            </Directory>
+          </VirtualHost>
+          PROXYEOF
+          systemctl restart httpd
+
+  ALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub '${AWS::StackName}-ALB'
+      Scheme: internet-facing
+      Type: application
+      Subnets: [!Ref PublicSubnet, !Ref PublicSubnet2]
+      SecurityGroups: [!Ref ALBSecurityGroup]
+
+  ALBTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub '${AWS::StackName}-TG'
+      Port: 80
+      Protocol: HTTP
+      VpcId: !Ref VPC
+      TargetType: instance
+      Targets: [{Id: !Ref WebServerInstance}]
+      HealthCheckPath: /health
+      HealthCheckIntervalSeconds: 30
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      Matcher: {HttpCode: '200,403'}
+
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ALB
+      Port: 80
+      Protocol: HTTP
+      DefaultActions: [{Type: forward, TargetGroupArn: !Ref ALBTargetGroup}]
+
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    DependsOn: ALB
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub '${AWS::StackName} - Reccas Kitchen'
+        DefaultRootObject: index.html
+        Origins:
+          - Id: ALBOrigin
+            DomainName: !GetAtt ALB.DNSName
+            CustomOriginConfig: {HTTPPort: 80, OriginProtocolPolicy: http-only}
+            OriginCustomHeaders:
+              - {HeaderName: !Ref CloudFrontSecretHeader, HeaderValue: !Ref CloudFrontSecretValue}
+        DefaultCacheBehavior:
+          TargetOriginId: ALBOrigin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          CachedMethods: [GET, HEAD]
+          ForwardedValues: {QueryString: false}
+        CacheBehaviors:
+          - PathPattern: '/api/*'
+            TargetOriginId: ALBOrigin
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+            ForwardedValues: {QueryString: true, Headers: ['*']}
+            DefaultTTL: 0
+            MinTTL: 0
+            MaxTTL: 0
+
+Outputs:
+  SiteURL:
+    Description: Recca's Kitchen public URL
+    Value: !Sub 'https://${CloudFrontDistribution.DomainName}'
+  ALBDNSName:
+    Value: !GetAtt ALB.DNSName
+  SSMCommand:
+    Value: !Sub 'aws ssm start-session --target ${WebServerInstance}'
+  InstanceId:
+    Value: !Ref WebServerInstance
